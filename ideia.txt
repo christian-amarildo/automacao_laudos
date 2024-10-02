@@ -120,7 +120,7 @@ Saída:
 O laudo é salvo como um arquivo .docx. Você pode modificar o código para salvar o laudo como PDF utilizando ReportLab se preferir.
 3. Gerar PDF (Opcional)
 Se você preferir salvar o laudo como um PDF, pode adicionar essa funcionalidade com a biblioteca ReportLab. Aqui está um exemplo de como fazer isso:
-
+asdf
 python
 Copiar código
 from reportlab.lib.pagesizes import letter
