@@ -21,7 +21,7 @@ from PIL import Image
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Abrir uma imagem de exemplo
-image = Image.open('exemplo.jpg')
+image = Image.open('requisicao.jpg')
 
 # Realizar OCR (extração de texto)
 texto = pytesseract.image_to_string(image)
