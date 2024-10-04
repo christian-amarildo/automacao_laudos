@@ -1,0 +1,102 @@
+from docx import Document
+
+def atualizar_historico(caminho_modelo, caminho_saida, informacoes):
+    # Abrir o documento modelo
+    doc = Document(caminho_modelo)
+
+    # Modificar partes específicas do documento
+    for par in doc.paragraphs:
+        par.text = par.text.replace("REQUISTAO_NUMERO", informacoes['requisicao'])
+        par.text = par.text.replace("DATA_REQUISICAO", informacoes['data'])
+        par.text = par.text.replace("INQUERITO_NUMERO", informacoes['inquerito'])
+        par.text = par.text.replace("AUTORIDADE", informacoes['autoridade'])
+        par.text = par.text.replace("LACRE_NUMERO", informacoes['lacre'])
+        par.text = par.text.replace("SACO_NUMERO", informacoes['saco'])
+        par.text = par.text.replace("ILUSTRACAO_1_2", informacoes['ilustracoes_1_2'])
+        par.text = par.text.replace("ILUSTRACAO_3", informacoes['ilustracao_3'])
+        par.text = par.text.replace("ILUSTRACAO_7", informacoes['ilustracao_7'])
+
+    # Salvar o documento modificado
+    doc.save(caminho_saida)
+
+# Exemplo de uso
+informacoes = {
+    "requisicao": "00001-2024-111744-2",
+    "data": "27/08/2024",
+    "inquerito": "00615/2023.100032-2",
+    "autoridade": "TOBIAS FERREIRA RODRIGUES",
+    "lacre": "Y220061313",
+    "saco": "A220001192",
+    "ilustracoes_1_2": "ver Ilustração 01 e 02",
+    "ilustracao_3": "ver Ilustração 03",
+    "ilustracao_7": "Ilustração 07"
+}
+
+atualizar_historico('modelo_laudo.docx', 'laudos/laudo_pericial.docx', informacoes)
+
+
+
+from docx import Document
+
+def gerar_laudo(informacoes, caminho_arquivo):
+    doc = Document()
+
+    # Adicionando título
+    doc.add_heading('Laudo Pericial', level=1)
+
+    # Adicionando informações extraídas
+    doc.add_paragraph(f"Requisição: {informacoes['requisicao']}")
+    doc.add_paragraph(f"Inquérito: {informacoes['inquerito']}")
+    doc.add_paragraph(f"Data: {informacoes['data']}")
+    doc.add_paragraph(f"Autoridade: {informacoes['autoridade']}")
+    doc.add_paragraph(f"Lacre: {informacoes['lacre']}")
+
+    # Salvando o documento
+    doc.save(caminho_arquivo)
+
+
+
+import re
+
+def processar_texto(texto):
+    # Definindo padrões para extração de informações
+    requisicao_pattern = r"REQUIZAO DE PERÍCIA Nº\s*(\d{5}-\d{4}-\d{6})"  
+    inquerito_pattern = r"INQUÉRITO POR PORTARIA Nº\s*(\d{5}/\d{4}\.\d{6}-\d{1})"  
+    data_pattern = r"datada de\s*(\d{2}/\d{2}/\d{4})"  
+    autoridade_pattern = r"assinado pela autoridade\s*([A-Z\s]+),"  
+    lacre_pattern = r"Lacre nº\s*([Y\d]+)"  
+
+    # Extraindo informações usando regex
+    requisicao = re.search(requisicao_pattern, texto, re.IGNORECASE)
+    inquerito = re.search(inquerito_pattern, texto, re.IGNORECASE)
+    data = re.search(data_pattern, texto, re.IGNORECASE)
+    autoridade = re.search(autoridade_pattern, texto, re.IGNORECASE)
+    lacre = re.search(lacre_pattern, texto, re.IGNORECASE)
+
+    return {
+        "requisicao": requisicao.group(1) if requisicao else "Não encontrado",
+        "inquerito": inquerito.group(1) if inquerito else "Não encontrado",
+        "data": data.group(1) if data else "Não encontrado",
+        "autoridade": autoridade.group(1).strip() if autoridade else "Não encontrado",
+        "lacre": lacre.group(1) if lacre else "Não encontrado"
+    }
+
+
+import pytesseract
+from PIL import Image
+
+def transcrever_imagem(caminho_imagem, caminho_texto):
+    # Configurar o caminho do Tesseract no Windows
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+    # Abrir a imagem
+    image = Image.open(caminho_imagem)
+
+    # Realizar OCR (extração de texto)
+    texto = pytesseract.image_to_string(image)
+
+    # Salvar o texto extraído em um arquivo .txt
+    with open(caminho_texto, 'w', encoding='utf-8') as arquivo:
+        arquivo.write(texto)
+
+    return texto

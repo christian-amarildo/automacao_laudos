@@ -1,16 +1,17 @@
-from docx import Document
+# from docx import Document
 
-def gerar_laudo(informacoes, caminho_arquivo):
-    doc = Document()
-    
-    doc.add_heading('Laudo Pericial', 0)
-    doc.add_paragraph(f"Nome: {informacoes['nome']}")
-    doc.add_paragraph(f"Data: {informacoes['data']}")
-    doc.add_paragraph(f"Protocolo: {informacoes['protocolo']}")
-    doc.add_paragraph("Este é um laudo pericial gerado automaticamente.")
-    
-    doc.save(caminho_arquivo)
-    print(f"Laudo salvo em: {caminho_arquivo}")
+# def gerar_laudo(informacoes, caminho_arquivo):
+#     doc = Document()
 
-# Exemplo de uso da função
-gerar_laudo(informacoes, "laudo_pericial.docx")
+#     # Adicionando título
+#     doc.add_heading('Laudo Pericial', level=1)
+
+#     # Adicionando informações extraídas
+#     doc.add_paragraph(f"Requisição: {informacoes['requisicao']}")
+#     doc.add_paragraph(f"Inquérito: {informacoes['inquerito']}")
+#     doc.add_paragraph(f"Data: {informacoes['data']}")
+#     doc.add_paragraph(f"Autoridade: {informacoes['autoridade']}")
+#     doc.add_paragraph(f"Lacre: {informacoes['lacre']}")
+
+#     # Salvando o documento
+#     doc.save(caminho_arquivo)
