@@ -1,4 +1,13 @@
 from docx import Document
+import re
+import pytesseract
+from PIL import Image
+
+
+
+
+
+
 
 def atualizar_historico(caminho_modelo, caminho_saida, informacoes):
     # Abrir o documento modelo
@@ -36,7 +45,9 @@ atualizar_historico('modelo_laudo.docx', 'laudos/laudo_pericial.docx', informaco
 
 
 
-from docx import Document
+
+
+
 
 def gerar_laudo(informacoes, caminho_arquivo):
     doc = Document()
@@ -56,7 +67,9 @@ def gerar_laudo(informacoes, caminho_arquivo):
 
 
 
-import re
+
+
+
 
 def processar_texto(texto):
     # Definindo padrões para extração de informações
@@ -82,8 +95,10 @@ def processar_texto(texto):
     }
 
 
-import pytesseract
-from PIL import Image
+
+
+
+
 
 def transcrever_imagem(caminho_imagem, caminho_texto):
     # Configurar o caminho do Tesseract no Windows
@@ -100,3 +115,5 @@ def transcrever_imagem(caminho_imagem, caminho_texto):
         arquivo.write(texto)
 
     return texto
+
+
