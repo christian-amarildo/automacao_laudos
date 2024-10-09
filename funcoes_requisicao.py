@@ -19,17 +19,40 @@ def transcrever_imagem(caminho_imagem):
 # Função responsável por processar o texto extraído e identificar as informações específicas da requisição
 def processar_texto(texto):
     # Definindo padrões com expressões regulares para capturar informações específicas no texto extraído
-    requisicao_pattern = r"REQUIZAO DE PERÍCIA Nº\s*(\d{5}-\d{4}-\d{6})"
-    inquerito_pattern = r"INQUÉRITO POR PORTARIA Nº\s*(\d{5}/\d{4}\.\d{6}-\d{1})"
-    data_pattern = r"datada de\s*(\d{2}/\d{2}/\d{4})"
-    autoridade_pattern = r"assinado pela autoridade\s*([A-Z\s]+),"
-    lacre_pattern = r"Lacre nº\s*([Y\d]+)"
+    
+    # Padrão para capturar o número da requisição de perícia
+
+    requisicao_pattern = r"(\d{5}-\d{4}-\d{6}-\d{1})"
+
+    # Padrão para capturar o número do inquérito por portaria
+    inquerito_pattern = r"INQUERITO POR PORTARIA n°\s*(\d{5}/\d{4}\.\d{6}-\d{1})"
+
+    # Padrão para capturar a data da requisição no formato "dd/mm/aaaa"
+    data_pattern = r"Data/Hora requisic¢ao:\s*(\d{2}/\d{2}/\d{4})"
+
+    # Padrão para capturar o nome da autoridade que requisitou
+    autoridade_pattern = r"Autoridade Requisitante:\s*([A-Z\s]+)(?:\n|$)"  # Captura até a quebra de linha ou o final do texto
+
+    # Padrão para capturar o número do protocolo
+    protocolo_pattern = r"Numero do Protocolo:\s*(\d{4}\.\d{2}\s*\d{6})"
+
+    # Padrão para capturar o local de ocorrência
+    local_ocorrencia_pattern = r"local(?:\s*de\s*ocorr(?:ência)?\s*):\s*(.*?)(?:\n|$)"
+
+    # Padrão para capturar o número do lacre
+    lacre_pattern = r"LACRE\s*([A-Z\d]+)"
+
+    # Padrão para capturar o número do caso
+    numero_caso_pattern = r"Numero do Caso:\s*(\d{4}\s*\d{6})"
+
 
     # Usando expressões regulares para buscar as informações no texto
     requisicao = re.search(requisicao_pattern, texto, re.IGNORECASE)
     inquerito = re.search(inquerito_pattern, texto, re.IGNORECASE)
     data = re.search(data_pattern, texto, re.IGNORECASE)
     autoridade = re.search(autoridade_pattern, texto, re.IGNORECASE)
+    # Usando expressões regulares para buscar o local de ocorrência
+    local_ocorrencia = re.search(local_ocorrencia_pattern, texto, re.IGNORECASE)
     lacre = re.search(lacre_pattern, texto, re.IGNORECASE)
 
     # Armazenando as informações encontradas em variáveis
@@ -37,6 +60,7 @@ def processar_texto(texto):
     inquerito_numero = inquerito.group(1) if inquerito else "Não encontrado"
     data_requisicao = data.group(1) if data else "Não encontrado"
     autoridade_nome = autoridade.group(1).strip() if autoridade else "Não encontrado"
+    local_ocorrencia_nome = local_ocorrencia.group(1).strip() if local_ocorrencia else "Não encontrado"
     lacre_numero = lacre.group(1) if lacre else "Não encontrado"
 
     # Retorna as informações extraídas em um dicionário
@@ -45,6 +69,7 @@ def processar_texto(texto):
         "inquerito": inquerito_numero,
         "data": data_requisicao,
         "autoridade": autoridade_nome,
+        "local_ocorrencia": local_ocorrencia_nome,
         "lacre": lacre_numero
     }
 
@@ -56,10 +81,10 @@ def salvar_transcricao(texto, caminho_saida):
 # Bloco principal de execução, onde o código será executado quando o script for rodado
 if __name__ == "__main__":
     # Definindo o caminho da imagem que contém a requisição, para ser processada
-    caminho_imagem = r'"C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg"'
+    caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
     
     # Definindo o caminho do arquivo de saída para a transcrição
-    caminho_saida_transcricao = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição2.txt'
+    caminho_saida_transcricao = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\transcrição da requisição.txt'
     
     try:
         # Chama a função para transcrever o texto a partir da imagem da requisição
