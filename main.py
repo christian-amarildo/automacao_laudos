@@ -1,7 +1,6 @@
 import pytesseract
 from PIL import Image
-from funcoes.processar_texto import processar_texto
-from funcoes.gerar_laudo import atualizar_historico  # Importando a função para atualizar o histórico
+from funcoes import processar_texto, atualizar_historico  # Importando funções do arquivo "funções"
 
 # Configurar o caminho do Tesseract no Windows
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
