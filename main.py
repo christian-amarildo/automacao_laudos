@@ -1,34 +1,56 @@
-import pytesseract
-from PIL import Image
-from funcoes import processar_texto, atualizar_historico  # Importando funções do arquivo "funções"
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from funcoes_requisicao import transcrever_imagem, processar_texto
+from clonar_pasta_modelo import clonar_e_renomear_pasta, renomear_imagens
 
-# Configurar o caminho do Tesseract no Windows
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+def abrir_imagem():
+    caminho_imagem = filedialog.askopenfilename(filetypes=[("Imagem", "*.jpg;*.jpeg;*.png")])
+    if caminho_imagem:
+        caminho_imagem_label.config(text=caminho_imagem)
+    return caminho_imagem
 
-# Função principal
-def main():
-    # Abrir uma imagem de exemplo
-    image = Image.open('imagens/requisicao.jpg')
+def processar_arquivo():
+    try:
+        caminho_imagem = abrir_imagem()
+        texto_transcrito = transcrever_imagem(caminho_imagem)
+        informacoes_requisicao = processar_texto(texto_transcrito)
 
-    # Realizar OCR (extração de texto)
-    texto = pytesseract.image_to_string(image)
+        # Atualiza os campos da interface com as informações extraídas
+        for chave, valor in informacoes_requisicao.items():
+            output_text.insert(tk.END, f"{chave}: {valor}\n")
 
-    # Salvar o texto extraído em um arquivo .txt
-    with open('textos/transcricao.txt', 'w', encoding='utf-8') as arquivo:
-        arquivo.write(texto)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao processar a imagem: {e}")
 
-    print("Texto extraído salvo em 'textos/transcricao.txt'")
+def clonar_pasta():
+    caminho_pasta_original = filedialog.askdirectory()
+    inquerito = informacoes_requisicao.get('inquerito')
+    try:
+        if inquerito:
+            novo_caminho = clonar_e_renomear_pasta(caminho_pasta_original, inquerito)
+            messagebox.showinfo("Sucesso", f"Pasta clonada em {novo_caminho}")
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao clonar pasta: {e}")
 
-    # Processar o texto extraído
-    informacoes = processar_texto(texto)
+# Configuração da interface gráfica
+root = tk.Tk()
+root.title("Automação de Laudos")
+root.geometry("600x400")
 
-    # Exibir as informações extraídas
-    print("Informações extraídas:")
-    print(informacoes)
+# Botão para abrir imagem
+btn_abrir_imagem = tk.Button(root, text="Abrir Imagem", command=processar_arquivo)
+btn_abrir_imagem.pack(pady=10)
 
-    # Atualizar o modelo de laudo com as informações extraídas
-    atualizar_historico('modelo_laudo.docx', 'laudos/laudo_pericial.docx', informacoes)
-    print("Laudo atualizado e salvo em 'laudos/laudo_pericial.docx'.")
+# Label para mostrar caminho da imagem
+caminho_imagem_label = tk.Label(root, text="Nenhuma imagem selecionada")
+caminho_imagem_label.pack()
 
-if __name__ == "__main__":
-    main()
+# Texto de saída para informações extraídas
+output_text = tk.Text(root, height=10)
+output_text.pack(pady=10)
+
+# Botão para clonar pasta
+btn_clonar_pasta = tk.Button(root, text="Clonar Pasta", command=clonar_pasta)
+btn_clonar_pasta.pack(pady=10)
+
+root.mainloop()

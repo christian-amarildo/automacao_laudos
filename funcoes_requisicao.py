@@ -78,31 +78,31 @@ def salvar_transcricao(texto, caminho_saida):
     with open(caminho_saida, 'w', encoding='utf-8') as arquivo:
         arquivo.write(texto)  # Escreve o texto transcrito no arquivo
 
-# Bloco principal de execução, onde o código será executado quando o script for rodado
-if __name__ == "__main__":
-    # Definindo o caminho da imagem que contém a requisição, para ser processada
-    caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
+# # Bloco principal de execução, onde o código será executado quando o script for rodado
+# if __name__ == "__main__":
+#     # Definindo o caminho da imagem que contém a requisição, para ser processada
+#     caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
     
-    # Definindo o caminho do arquivo de saída para a transcrição
-    caminho_saida_transcricao = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\transcrição da requisição.txt'
+#     # Definindo o caminho do arquivo de saída para a transcrição
+#     caminho_saida_transcricao = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\transcrição da requisição.txt'
     
-    try:
-        # Chama a função para transcrever o texto a partir da imagem da requisição
-        texto_transcrito = transcrever_imagem(caminho_imagem)
+#     try:
+#         # Chama a função para transcrever o texto a partir da imagem da requisição
+#         texto_transcrito = transcrever_imagem(caminho_imagem)
 
-        # Salva a transcrição em um arquivo .txt, sobrescrevendo se já existir
-        salvar_transcricao(texto_transcrito, caminho_saida_transcricao)
+#         # Salva a transcrição em um arquivo .txt, sobrescrevendo se já existir
+#         salvar_transcricao(texto_transcrito, caminho_saida_transcricao)
 
-        # Chama a função para processar o texto e extrair as informações da requisição
-        informacoes_requisicao = processar_texto(texto_transcrito)
+#         # Chama a função para processar o texto e extrair as informações da requisição
+#         informacoes_requisicao = processar_texto(texto_transcrito)
 
-        # Exibir as informações extraídas da requisição
-        print("Informações extraídas da requisição:")
-        for chave, valor in informacoes_requisicao.items():
-            print(f"{chave}: {valor}")
+#         # Exibir as informações extraídas da requisição
+#         print("Informações extraídas da requisição:")
+#         for chave, valor in informacoes_requisicao.items():
+#             print(f"{chave}: {valor}")
 
-    except FileNotFoundError as e:
-        print(f"Erro: O arquivo de imagem não foi encontrado. Verifique o caminho especificado: {e}")
+#     except FileNotFoundError as e:
+#         print(f"Erro: O arquivo de imagem não foi encontrado. Verifique o caminho especificado: {e}")
 
-    except Exception as e:
-        print(f"Ocorreu um erro ao processar a imagem ou o texto: {e}")
+#     except Exception as e:
+#         print(f"Ocorreu um erro ao processar a imagem ou o texto: {e}")
