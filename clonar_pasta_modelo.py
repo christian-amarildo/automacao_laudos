@@ -1,6 +1,5 @@
 import os
 import shutil
-import re
 from funcoes_requisicao import processar_texto  # Importa a função de processamento
 from funcoes_requisicao import transcrever_imagem  # Importa a função de transcrição de imagem
 
@@ -18,14 +17,37 @@ def clonar_e_renomear_pasta(caminho_pasta_original, inquerito):
     shutil.copytree(caminho_pasta_original, novo_caminho)
     
     print(f"Pasta clonada e renomeada para: {novo_nome}")
+    return novo_caminho  # Retorne o novo caminho da pasta clonada
+
+def renomear_imagens(marca_celular, novo_caminho):
+    # Percorre todos os arquivos na nova pasta
+    for file_name in os.listdir(novo_caminho):
+        # Garante que estamos trabalhando apenas com arquivos que são imagens
+        if file_name.endswith(('.jpg', '.jpeg', '.png')):  # Filtra apenas imagens
+            print(f"Arquivo encontrado: {file_name}")  # Exibe o nome do arquivo encontrado
+            
+            # Cria o caminho completo do arquivo antigo
+            old_name = os.path.join(novo_caminho, file_name)
+            # Renomeia o arquivo, substituindo 'celular' pelo nome fornecido
+            new_name = os.path.join(novo_caminho, file_name.replace('celularr', marca_celular))
+            
+            if 'celularr' in file_name:
+                # Renomeia o arquivo
+                os.rename(old_name, new_name)
+                print(f"Imagem renomeada: {old_name} -> {new_name}")  # Mostra o renomeio
+            else:
+                print(f"A parte 'celularr' não encontrada em: {file_name}")
 
 # Exemplo de uso
 if __name__ == "__main__":
-    # Caminho da pasta original
+    # Caminho da pasta onde ficam os laudos
     caminho_pasta_original = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra'
 
     # Caminho do arquivo de imagem que será processado
     caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
+    
+    # Pergunta ao usuário o nome do celular
+    marca_celular = input("Por favor, insira o nome do celular: ")
     
     try:
         # Transcreve o texto da imagem
@@ -38,7 +60,10 @@ if __name__ == "__main__":
         inquerito_numero = informacoes_requisicao['inquerito']  # Acesse o inquérito do dicionário
 
         # Chama a função para clonar e renomear a pasta
-        clonar_e_renomear_pasta(caminho_pasta_original, inquerito_numero)  # Passa o inquérito para renomear a pasta
+        novo_caminho = clonar_e_renomear_pasta(caminho_pasta_original, inquerito_numero)  # Passa o inquérito para renomear a pasta
+
+        # Renomeia as imagens na nova pasta
+        renomear_imagens(marca_celular, novo_caminho)
 
     except FileNotFoundError as e:
         print(f"Erro: O arquivo de imagem não foi encontrado. Verifique o caminho especificado: {e}")
