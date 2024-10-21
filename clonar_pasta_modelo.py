@@ -2,22 +2,34 @@ import os
 import shutil
 from funcoes_requisicao import processar_texto  # Importa a função de processamento
 from funcoes_requisicao import transcrever_imagem  # Importa a função de transcrição de imagem
+import re  # Certifique-se de que a biblioteca re está importada
 
-# Função para clonar uma pasta e renomeá-la
-def clonar_e_renomear_pasta(caminho_pasta_original, inquerito):
-    # Substitui '/' por '.' no inquérito
-    inquerito_numero = inquerito.replace('/', '.')  # Modificando o inquérito
-    
-    novo_nome = f"BOP {inquerito_numero} Celular crimes contra"  # Formatação do novo nome
-    
-    # Cria o caminho para a nova pasta
+def clonar_e_renomear_pasta(caminho_pasta_original, caminho_pasta_destino, marca_celular, inquerito):
+    # Substituir caracteres inválidos do inquérito
+    inquerito_numero = re.sub(r'[<>:"/\\|?*]', '.', inquerito)
+
+    # Formatar o novo nome da pasta
+    novo_nome = f"BOP {inquerito_numero} Celular {marca_celular} crimes contra"
+
+    # Criar o novo caminho para a pasta clonada dentro do caminho de destino
     novo_caminho = os.path.join(os.path.dirname(caminho_pasta_original), novo_nome)
-    
-    # Clona a pasta original para a nova pasta
-    shutil.copytree(caminho_pasta_original, novo_caminho)
+    # Verificar se o caminho da pasta original existe
+    if not os.path.exists(caminho_pasta_original):
+        raise FileNotFoundError(f"Pasta original não encontrada: {caminho_pasta_original}")
+
+    # Verificar se a nova pasta já existe para evitar sobrescrita
+    if os.path.exists(novo_caminho):
+        raise FileExistsError(f"A pasta já existe: {novo_caminho}")
+
+    # Clonar a pasta original para a nova pasta
+    try:
+        shutil.copytree(caminho_pasta_original, novo_caminho)
+    except Exception as e:
+        raise Exception(f"Erro ao clonar a pasta: {e}")
     
     print(f"Pasta clonada e renomeada para: {novo_nome}")
-    return novo_caminho  # Retorne o novo caminho da pasta clonada
+    return novo_caminho
+
 
 def renomear_imagens(marca_celular, novo_caminho):
     # Percorre todos os arquivos na nova pasta
@@ -38,7 +50,7 @@ def renomear_imagens(marca_celular, novo_caminho):
             else:
                 print(f"A parte 'celularr' não encontrada em: {file_name}")
 
-# # Exemplo de uso
+# Exemplo de uso
 # if __name__ == "__main__":
 #     # Caminho da pasta onde ficam os laudos
 #     caminho_pasta_original = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra'
@@ -59,8 +71,11 @@ def renomear_imagens(marca_celular, novo_caminho):
 #         # Obtém o inquérito do dicionário
 #         inquerito_numero = informacoes_requisicao['inquerito']  # Acesse o inquérito do dicionário
 
+#         # Caminho de destino para a nova pasta clonada
+#         caminho_pasta_destino = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos'  # Defina um caminho de destino
+
 #         # Chama a função para clonar e renomear a pasta
-#         novo_caminho = clonar_e_renomear_pasta(caminho_pasta_original, inquerito_numero)  # Passa o inquérito para renomear a pasta
+#         novo_caminho = clonar_e_renomear_pasta(caminho_pasta_original, caminho_pasta_destino, marca_celular, inquerito_numero)  # Passa todos os argumentos
 
 #         # Renomeia as imagens na nova pasta
 #         renomear_imagens(marca_celular, novo_caminho)
