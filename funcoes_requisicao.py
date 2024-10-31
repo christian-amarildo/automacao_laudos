@@ -28,7 +28,7 @@ def processar_texto(texto):
     inquerito_pattern = r"INQUERITO POR PORTARIA n°\s*(\d{5}/\d{4}\.\d{6}-\d{1})"
 
     # Padrão para capturar a data da requisição no formato "dd/mm/aaaa"
-    data_pattern = r"Data/Hora requisic¢ao:\s*(\d{2}/\d{2}/\d{4})"
+    data_pattern = r"Data[\/\s]*Hora.*?:\s*(\d{2}/\d{2}/\d{4})"
 
     # Padrão para capturar o nome da autoridade que requisitou
     autoridade_pattern = r"Autoridade Requisitante:\s*([A-Z\s]+)(?:\n|$)"  # Captura até a quebra de linha ou o final do texto
@@ -81,10 +81,10 @@ def salvar_transcricao(texto, caminho_saida):
 # Bloco principal de execução, onde o código será executado quando o script for rodado
 if __name__ == "__main__":
     # Definindo o caminho da imagem que contém a requisição, para ser processada
-    caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
+    caminho_imagem = r'.\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
     
     # Definindo o caminho do arquivo de saída para a transcrição
-    caminho_saida_transcricao = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\transcrição da requisição.txt'
+    caminho_saida_transcricao = r'.\BOP 000000000.000000-0 Celular crimes contra\transcrição da requisição2.txt'
     
     try:
         # Chama a função para transcrever o texto a partir da imagem da requisição
