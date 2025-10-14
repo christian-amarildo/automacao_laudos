@@ -1,51 +1,51 @@
 import os
 import shutil
-from funcoes_requisicao import processar_texto  # Importa a função de processamento
-from funcoes_requisicao import transcrever_imagem  # Importa a função de transcrição de imagem
-import re  # Certifique-se de que a biblioteca re está importada
+import re
+import json
 
-def clonar_e_renomear_pasta(caminho_pasta_original, caminho_pasta_destino, marca_celular, inquerito):
-    # Substituir caracteres inválidos do inquérito
-    inquerito_numero = re.sub(r'[<>:"/\\|?*]', '.', inquerito)
+def _renomear_imagens(modelo_dispositivo, novo_caminho):
+    """Função interna para renomear imagens na pasta de destino."""
+    if not modelo_dispositivo:
+        print("Aviso: Modelo do dispositivo não fornecido, pulando renomeação de imagens.")
+        return
 
-    # Formatar o novo nome da pasta
-    novo_nome = f"BOP {inquerito_numero} Celular {marca_celular} crimes contra"
-
-    # Criar o novo caminho para a pasta clonada dentro do caminho de destino
-    novo_caminho = os.path.join(os.path.dirname(caminho_pasta_original), novo_nome)
-    # Verificar se o caminho da pasta original existe
-    if not os.path.exists(caminho_pasta_original):
-        raise FileNotFoundError(f"Pasta original não encontrada: {caminho_pasta_original}")
-
-    # Verificar se a nova pasta já existe para evitar sobrescrita
-    if os.path.exists(novo_caminho):
-        raise FileExistsError(f"A pasta já existe: {novo_caminho}")
-
-    # Clonar a pasta original para a nova pasta
-    try:
-        shutil.copytree(caminho_pasta_original, novo_caminho)
-    except Exception as e:
-        raise Exception(f"Erro ao clonar a pasta: {e}")
-    
-    print(f"Pasta clonada e renomeada para: {novo_nome}")
-    return novo_caminho
-
-
-def renomear_imagens(marca_celular, novo_caminho):
-    # Percorre todos os arquivos na nova pasta
     for file_name in os.listdir(novo_caminho):
-        # Garante que estamos trabalhando apenas com arquivos que são imagens
-        if file_name.endswith(('.jpg', '.jpeg', '.png')):  # Filtra apenas imagens
-            print(f"Arquivo encontrado: {file_name}")  # Exibe o nome do arquivo encontrado
-            
-            # Cria o caminho completo do arquivo antigo
-            old_name = os.path.join(novo_caminho, file_name)
-            # Renomeia o arquivo, substituindo 'celular' pelo nome fornecido
-            new_name = os.path.join(novo_caminho, file_name.replace('celularr', marca_celular))
-            
-            if 'celularr' in file_name:
-                # Renomeia o arquivo
-                os.rename(old_name, new_name)
-                print(f"Imagem renomeada: {old_name} -> {new_name}")  # Mostra o renomeio
-            else:
-                print(f"A parte 'celularr' não encontrada em: {file_name}")
+        if file_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+            old_path = os.path.join(novo_caminho, file_name)
+            # A lógica agora substitui 'dispositivoo' (case-insensitive)
+            if 'dispositivoo' in file_name.lower():
+                new_file_name = re.sub('dispositivoo', modelo_dispositivo, file_name, flags=re.IGNORECASE)
+                new_path = os.path.join(novo_caminho, new_file_name)
+                os.rename(old_path, new_path)
+                print(f"Imagem renomeada: {file_name} -> {new_file_name}")
+
+
+def executar_clonagem_completa(caminho_origem, caminho_destino_base, info_requisicao, modelo_dispositivo):
+    """
+    Executa o processo completo de clonagem, incluindo nomeação, cópia e renomeação de imagens.
+    """
+    # 1. Validar entradas
+    if not caminho_origem or not os.path.exists(caminho_origem):
+        raise FileNotFoundError(f"A pasta de origem selecionada não existe: {caminho_origem}")
+    if not caminho_destino_base:
+        raise ValueError("Nenhum diretório de destino foi selecionado.")
+
+    # 2. Montar o nome da nova pasta
+    inquerito = info_requisicao.get('inquerito', 'N_A')
+    tipo_crime = info_requisicao.get('tipo_crime', '').strip()
+    inquerito_numero = re.sub(r'[<>:"/\\|?*]', '.', inquerito)
+    
+    novo_nome_pasta = f"BOP {inquerito_numero} Dispositivo {modelo_dispositivo} crimes contra {tipo_crime}"
+    caminho_final_pasta = os.path.join(caminho_destino_base, novo_nome_pasta)
+
+    if os.path.exists(caminho_final_pasta):
+        raise FileExistsError(f"A pasta de destino já existe: {caminho_final_pasta}")
+
+    # 3. Copiar a árvore de diretórios
+    shutil.copytree(caminho_origem, caminho_final_pasta)
+    print(f"Pasta clonada para: {caminho_final_pasta}")
+
+    # 4. Renomear as imagens na nova pasta
+    _renomear_imagens(modelo_dispositivo, caminho_final_pasta)
+
+    return caminho_final_pasta

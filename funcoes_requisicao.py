@@ -42,8 +42,8 @@ def processar_texto(texto):
     # Padrão para capturar o número do lacre
     lacre_pattern = r"LACRE\s*([A-Z\d]+)"
 
-    # Padrão para capturar o número do caso
-    numero_caso_pattern = r"Numero do Caso:\s*(\d{4}\s*\d{6})"
+    # Padrão para capturar o número do protocolo
+    protocolo_pattern = r"Numero do Protocolo:\s*(\d{4,4}\.\d{2}\.\d{6})"
 
     # Padrão para capturar o tipo de crime
     crime_pattern = r"crimes contra\s*(.*?)(?:\n|$)"
@@ -57,6 +57,7 @@ def processar_texto(texto):
     # Usando expressões regulares para buscar o local de ocorrência
     local_ocorrencia = re.search(local_ocorrencia_pattern, texto, re.IGNORECASE)
     lacre = re.search(lacre_pattern, texto, re.IGNORECASE)
+    protocolo = re.search(protocolo_pattern, texto, re.IGNORECASE)
     tipo_crime = re.search(crime_pattern, texto, re.IGNORECASE)
 
     # Armazenando as informações encontradas em variáveis
@@ -66,12 +67,14 @@ def processar_texto(texto):
     autoridade_nome = autoridade.group(1).strip() if autoridade else "Não encontrado"
     local_ocorrencia_nome = local_ocorrencia.group(1).strip() if local_ocorrencia else "Não encontrado"
     lacre_numero = lacre.group(1) if lacre else "Não encontrado"
+    protocolo_numero = protocolo.group(1) if protocolo else "Não encontrado"
     crime_tipo = tipo_crime.group(1).strip() if tipo_crime else "Não encontrado"
 
     # Retorna as informações extraídas em um dicionário
     return {
         "requisicao": requisicao_numero,
         "inquerito": inquerito_numero,
+        "protocolo": protocolo_numero,
         "data": data_requisicao,
         "autoridade": autoridade_nome,
         "local_ocorrencia": local_ocorrencia_nome,

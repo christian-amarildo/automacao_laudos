@@ -1,10 +1,13 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
+from pathlib import Path
 from funcoes_requisicao import transcrever_imagem, processar_texto
-from clonar_pasta_modelo import clonar_e_renomear_pasta, renomear_imagens
+from clonar_pasta_modelo import executar_clonagem_completa
+from modificar_laudo import gerar_laudo_markdown
 import os
 import re
 import shutil
+import json
 
 class AutomacaoLaudosGUI:
     def __init__(self, root):
@@ -16,10 +19,11 @@ class AutomacaoLaudosGUI:
         self.caminho_imagem = ".\\BOP 000000000.000000-0 Celular crimes contra\\Figura 00 - Requisição.jpg"
         self.caminho_pasta = ""
         self.caminho_pasta_destino = ""  # Variável para armazenar o caminho da pasta de destino
+        self.caminho_caso_atual = None # Guarda o caminho da pasta do caso atual
         self.informacoes_requisicao = {}
-        self.marca_celular = ""
+        self.modelo_dispositivo = ""
         
-        # --- Novos widgets para campos editáveis ---
+        # --- Widgets para campos editáveis ---
         self.info_frame = None
         self.info_entries = {}
         # -----------------------------------------
@@ -41,17 +45,16 @@ class AutomacaoLaudosGUI:
 
         # Label para mostrar caminho da imagem
         self.caminho_imagem_label = tk.Label(root, text=self.caminho_imagem, wraplength=680)
-        self.caminho_imagem_label.pack()
+        self.caminho_imagem_label.pack(pady=5, padx=10)
 
-        # --- O antigo output_text foi removido ---
+        # Frame para os resultados do OCR
+        self.ocr_results_frame = tk.Frame(root, bd=2, relief=tk.GROOVE)
+        self.ocr_results_frame.pack(pady=10, padx=10, fill=tk.X)
+        tk.Label(self.ocr_results_frame, text="Aguardando processamento da imagem...").pack(pady=20)
 
         # Frame inferior para os botões de ação
         bottom_frame = tk.Frame(root)
         bottom_frame.pack(pady=20, side=tk.BOTTOM)
-
-        # Botão para pedir a marca do celular
-        self.btn_pedir_marca = tk.Button(bottom_frame, text="Insira a Marca do Celular", command=self.pedir_marca_celular)
-        self.btn_pedir_marca.pack(side=tk.LEFT, padx=5)
 
         # Botão para selecionar a pasta de origem
         self.btn_selecionar_pasta = tk.Button(bottom_frame, text="Selecionar Pasta de Origem", command=self.selecionar_pasta)
@@ -60,6 +63,10 @@ class AutomacaoLaudosGUI:
         # Botão para clonar pasta
         self.btn_clonar_pasta = tk.Button(bottom_frame, text="Clonar Pasta", command=self.clonar_pasta)
         self.btn_clonar_pasta.pack(side=tk.LEFT, padx=5)
+
+        # Novo Botão para Gerar o Laudo
+        self.btn_gerar_laudo = tk.Button(bottom_frame, text="Gerar Laudo", command=self.abrir_janela_laudo, state=tk.DISABLED)
+        self.btn_gerar_laudo.pack(side=tk.LEFT, padx=5)
 
     def mudar_imagem(self):
         try:
@@ -79,13 +86,23 @@ class AutomacaoLaudosGUI:
             return
         
         try:
-            # Transcrever o texto da imagem
+            # 1. Carrega os dados padrão do JSON
+            with open('dados_padrao.json', 'r', encoding='utf-8') as f:
+                dados_base = json.load(f)
+
+            # 2. Transcreve e processa a imagem
             texto_transcrito = transcrever_imagem(self.caminho_imagem)
+            info_ocr = processar_texto(texto_transcrito)
 
-            # Processar o texto e extrair as informações da requisição
-            self.informacoes_requisicao = processar_texto(texto_transcrito)
+            # 3. Atualiza os dados padrão com os dados do OCR
+            # Apenas os valores que o OCR encontrou (diferente de "Não encontrado") irão sobrescrever
+            for chave, valor in info_ocr.items():
+                if valor and valor != "Não encontrado":
+                    dados_base[chave] = valor
+            
+            self.informacoes_requisicao = dados_base
 
-            # Exibir as informações em campos editáveis
+            # 4. Exibe o resultado combinado para edição
             self.display_editable_info()
 
         except Exception as e:
@@ -136,6 +153,8 @@ class AutomacaoLaudosGUI:
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao salvar as informações: {e}")
 
+
+
     def selecionar_pasta(self):
         try:
             # Permitir ao usuário selecionar uma nova pasta de origem
@@ -150,60 +169,476 @@ class AutomacaoLaudosGUI:
 
     def clonar_pasta(self):
         if not self.caminho_pasta:
-            messagebox.showerror("Erro", "Nenhuma pasta foi selecionada.")
+            messagebox.showerror("Erro", "Nenhuma pasta de origem foi selecionada.")
             return
 
-        # Verifica se as informações da requisição foram processadas
-        if not self.informacoes_requisicao or 'inquerito' not in self.informacoes_requisicao:
-            messagebox.showerror("Erro", "Informações do inquérito não encontradas. Verifique a legibilidade da imagem.")
+        if not self.informacoes_requisicao or not self.informacoes_requisicao.get('modelo_dispositivo', '').strip():
+            messagebox.showerror("Erro", "O modelo do dispositivo não foi preenchido. Processe uma imagem e preencha o campo antes de clonar.")
             return
 
-        # Solicitar ao usuário o caminho de destino para a pasta clonada
-        caminho_pasta_destino = filedialog.askdirectory(title="Selecione o diretório de destino para a pasta clonada")
+        caminho_pasta_destino = filedialog.askdirectory(title="Selecione o diretório de DESTINO para a nova pasta do laudo")
         if not caminho_pasta_destino:
-            messagebox.showerror("Erro", "Nenhum diretório de destino foi selecionado.")
+            messagebox.showwarning("Aviso", "Nenhum diretório de destino foi selecionado.")
             return
 
         try:
-            inquerito = self.informacoes_requisicao['inquerito']
-            tipo_crime = self.informacoes_requisicao.get('tipo_crime', '').strip()
+            # A variável `modelo_dispositivo` agora vem do dicionário principal
+            modelo_dispositivo = self.informacoes_requisicao.get('modelo_dispositivo', '')
+
+            # Chama a função centralizada que faz todo o trabalho
+            caminho_final = executar_clonagem_completa(
+                caminho_origem=self.caminho_pasta,
+                caminho_destino_base=caminho_pasta_destino,
+                info_requisicao=self.informacoes_requisicao,
+                modelo_dispositivo=modelo_dispositivo
+            )
+            # Guarda o caminho do caso atual e ativa o botão de gerar laudo
+            self.caminho_caso_atual = caminho_final
+            self.btn_gerar_laudo.config(state=tk.NORMAL)
+
+            messagebox.showinfo("Sucesso", f"Processo concluído com sucesso!\n\nNova pasta criada em:\n{caminho_final}")
+        except (FileNotFoundError, ValueError, FileExistsError) as e:
+            messagebox.showerror("Erro de Validação", str(e))
+        except Exception as e:
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante o processo:\n\n{e}")
+
+    def abrir_janela_laudo(self):
+        json_path = 'dados_padrao.json' # Caminho para o arquivo de dados padrão
+        if not os.path.exists(json_path):
+            messagebox.showerror("Erro", f"Arquivo de dados padrão '{json_path}' não encontrado.")
+            return
+
+        # Carrega os dados do arquivo JSON padrão
+        with open(json_path, 'r', encoding='utf-8') as f:
+            dados_salvos = json.load(f)
+
+        laudo_window = tk.Toplevel(self.root)
+        laudo_window.title("Preencher e Gerar Laudo")
+        laudo_window.geometry("800x700")
+
+        canvas = tk.Canvas(laudo_window)
+        scrollbar = tk.Scrollbar(laudo_window, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        import configparser
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        placeholders = config['Placeholders']
+
+        laudo_entries = {}
+        # Atualiza os dados padrão com o que veio do OCR, se houver
+        dados_para_exibir = dados_salvos.copy()
+        dados_para_exibir.update(self.informacoes_requisicao)
+
+        for i, (chave, placeholder_texto) in enumerate(placeholders.items()):
+            label = tk.Label(scrollable_frame, text=f"{chave.replace('_', ' ').title()}:")
+            label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
+
+            entry = tk.Entry(scrollable_frame, width=100)
+            entry.grid(row=i, column=1, sticky="ew", padx=10, pady=5)
             
-            # Ajuste o nome do inquérito para evitar caracteres inválidos
-            inquerito_numero = re.sub(r'[<>:"/\\|?*]', '.', inquerito)
+            entry.insert(0, dados_para_exibir.get(chave, ''))
+            
+            laudo_entries[chave] = entry
 
-            # Formatar o novo nome da pasta
-            novo_nome = f"BOP {inquerito_numero} Celular {self.marca_celular} crimes contra {tipo_crime}"
-            novo_caminho = os.path.join(caminho_pasta_destino, novo_nome)
+        def salvar_e_gerar():
+            # 1. Coleta os dados finais da janela
+            dados_finais = {chave: entry.get() for chave, entry in laudo_entries.items()}
+            
+            # 2. Sobrescreve o arquivo de dados padrão com as novas informações
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(dados_finais, f, ensure_ascii=False, indent=4)
+            print(f"Arquivo de dados padrão '{json_path}' foi atualizado.")
 
-            # Verificar se a pasta original existe
-            if not os.path.exists(self.caminho_pasta):
-                raise FileNotFoundError(f"Pasta original não encontrada: {self.caminho_pasta}")
+            # 3. Define o nome sugerido para o arquivo de laudo
+            protocolo = dados_finais.get('protocolo', 'PROTOCOLO')
+            dispositivo = dados_finais.get('modelo_dispositivo', 'DISPOSITIVO')
+            nome_sugerido = f"Laudo {protocolo} - {dispositivo}.md"
 
-            # Verificar se a nova pasta já existe para evitar sobrescrita
-            if os.path.exists(novo_caminho):
-                raise FileExistsError(f"A pasta já existe: {novo_caminho}")
+            # 4. Pergunta ao usuário onde salvar o laudo
+            caminho_salvar_laudo = filedialog.asksaveasfilename(
+                title="Salvar Laudo Markdown Como...",
+                initialfile=nome_sugerido,
+                defaultextension=".md",
+                filetypes=[("Markdown files", "*.md"), ("All files", "*.*")]
+            )
 
-            # Clonar a pasta original para a nova pasta
-            shutil.copytree(self.caminho_pasta, novo_caminho)
+            if not caminho_salvar_laudo:
+                messagebox.showwarning("Operação Cancelada", "A geração do laudo foi cancelada.", parent=laudo_window)
+                return
 
-            # Renomear as imagens na nova pasta clonada
-            renomear_imagens(self.marca_celular, novo_caminho)
+            # 5. Gera o arquivo de laudo final
+            try:
+                caminho_template_md = Path('modelo_laudo.md')
+                gerar_laudo_markdown(dados_finais, Path(caminho_salvar_laudo), caminho_template_md)
+                messagebox.showinfo("Sucesso", f"Laudo gerado e salvo com sucesso em:\n{caminho_salvar_laudo}", parent=laudo_window)
+                laudo_window.destroy()
+            except Exception as e:
+                messagebox.showerror("Erro ao Gerar Laudo", f"Não foi possível gerar o arquivo de laudo:\n{e}", parent=laudo_window)
 
-            messagebox.showinfo("Sucesso", f"Pasta clonada e imagens renomeadas em: {novo_caminho}")
-        except FileNotFoundError as e:
-            messagebox.showerror("Erro", f"Pasta original não encontrada: {e}")
-        except FileExistsError as e:
-            messagebox.showerror("Erro", f"A pasta já existe: {e}")
-        except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao clonar e renomear a pasta: {e}")
+        btn_salvar_gerar = tk.Button(scrollable_frame, text="Salvar Padrão e Gerar Laudo", command=salvar_e_gerar)
+        btn_salvar_gerar.grid(row=len(placeholders), column=0, columnspan=2, pady=20)
 
-    def pedir_marca_celular(self):
-        try:
-            self.marca_celular = simpledialog.askstring("Marca do Celular", "Insira a marca do celular:")
-            if not self.marca_celular:
-                messagebox.showwarning("Aviso", "Marca do celular não foi fornecida. Você poderá inserir novamente ao clonar a pasta.")
-        except Exception as e:
-            messagebox.showerror("Erro", f"Erro ao solicitar a marca do celular: {e}")
+
+
+        def abrir_janela_laudo(self):
+
+
+
+            json_path = 'dados_padrao.json' # Caminho para o arquivo de dados padrão
+
+
+
+            if not os.path.exists(json_path):
+
+
+
+                messagebox.showerror("Erro", f"Arquivo de dados padrão '{json_path}' não encontrado.")
+
+
+
+                return
+
+
+
+    
+
+
+
+            # Carrega os dados do arquivo JSON padrão
+
+
+
+            with open(json_path, 'r', encoding='utf-8') as f:
+
+
+
+                dados_salvos = json.load(f)
+
+
+
+    
+
+
+
+            laudo_window = tk.Toplevel(self.root)
+
+
+
+            laudo_window.title("Preencher e Gerar Laudo")
+
+
+
+            laudo_window.geometry("800x700")
+
+
+
+    
+
+
+
+            canvas = tk.Canvas(laudo_window)
+
+
+
+            scrollbar = tk.Scrollbar(laudo_window, orient="vertical", command=canvas.yview)
+
+
+
+            scrollable_frame = tk.Frame(canvas)
+
+
+
+    
+
+
+
+            scrollable_frame.bind(
+
+
+
+                "<Configure>",
+
+
+
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+
+
+
+            )
+
+
+
+    
+
+
+
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+
+
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+
+
+    
+
+
+
+            canvas.pack(side="left", fill="both", expand=True)
+
+
+
+            scrollbar.pack(side="right", fill="y")
+
+
+
+    
+
+
+
+            import configparser
+
+
+
+            config = configparser.ConfigParser()
+
+
+
+            config.read('config.ini')
+
+
+
+            placeholders = config['Placeholders']
+
+
+
+    
+
+
+
+            laudo_entries = {}
+
+
+
+            # Atualiza os dados padrão com o que veio do OCR, se houver
+
+
+
+            dados_para_exibir = dados_salvos.copy()
+
+
+
+            dados_para_exibir.update(self.informacoes_requisicao)
+
+
+
+    
+
+
+
+            for i, (chave, placeholder_texto) in enumerate(placeholders.items()):
+
+
+
+                label = tk.Label(scrollable_frame, text=f"{chave.replace('_', ' ').title()}:")
+
+
+
+                label.grid(row=i, column=0, sticky="w", padx=10, pady=5)
+
+
+
+    
+
+
+
+                entry = tk.Entry(scrollable_frame, width=100)
+
+
+
+                entry.grid(row=i, column=1, sticky="ew", padx=10, pady=5)
+
+
+
+                
+
+
+
+                entry.insert(0, dados_para_exibir.get(chave, ''))
+
+
+
+                
+
+
+
+                laudo_entries[chave] = entry
+
+
+
+    
+
+
+
+            def salvar_e_gerar():
+
+
+
+                # 1. Coleta os dados finais da janela
+
+
+
+                dados_finais = {chave: entry.get() for chave, entry in laudo_entries.items()}
+
+
+
+                
+
+
+
+                # 2. Sobrescreve o arquivo de dados padrão com as novas informações
+
+
+
+                with open(json_path, 'w', encoding='utf-8') as f:
+
+
+
+                    json.dump(dados_finais, f, ensure_ascii=False, indent=4)
+
+
+
+                print(f"Arquivo de dados padrão '{json_path}' foi atualizado.")
+
+
+
+    
+
+
+
+                # 3. Define o nome sugerido para o arquivo de laudo
+
+
+
+                protocolo = dados_finais.get('protocolo', 'PROTOCOLO')
+
+
+
+                dispositivo = dados_finais.get('modelo_dispositivo', 'DISPOSITIVO')
+
+
+
+                nome_sugerido = f"Laudo {protocolo} - {dispositivo}.md"
+
+
+
+    
+
+
+
+                # 4. Pergunta ao usuário onde salvar o laudo
+
+
+
+                caminho_salvar_laudo = filedialog.asksaveasfilename(
+
+
+
+                    title="Salvar Laudo Markdown Como...",
+
+
+
+                    initialfile=nome_sugerido,
+
+
+
+                    defaultextension=".md",
+
+
+
+                    filetypes=[("Markdown files", "*.md"), ("All files", "*.*")]
+
+
+
+                )
+
+
+
+    
+
+
+
+                if not caminho_salvar_laudo:
+
+
+
+                    messagebox.showwarning("Operação Cancelada", "A geração do laudo foi cancelada.", parent=laudo_window)
+
+
+
+                    return
+
+
+
+    
+
+
+
+                # 5. Gera o arquivo de laudo final
+
+
+
+                try:
+
+
+
+                    caminho_template_md = Path('modelo_laudo.md')
+
+
+
+                    gerar_laudo_markdown(dados_finais, Path(caminho_salvar_laudo), caminho_template_md)
+
+
+
+                    messagebox.showinfo("Sucesso", f"Laudo gerado e salvo com sucesso em:\n{caminho_salvar_laudo}", parent=laudo_window)
+
+
+
+                    laudo_window.destroy()
+
+
+
+                except Exception as e:
+
+
+
+                    messagebox.showerror("Erro ao Gerar Laudo", f"Não foi possível gerar o arquivo de laudo:\n{e}", parent=laudo_window)
+
+
+
+    
+
+
+
+            btn_salvar_gerar = tk.Button(scrollable_frame, text="Salvar Padrão e Gerar Laudo", command=salvar_e_gerar)
+
+
+
+            btn_salvar_gerar.grid(row=len(placeholders), column=0, columnspan=2, pady=20)
+        btn_salvar_gerar.grid(row=len(placeholders), column=0, columnspan=2, pady=20)
+
 
     def salvar_ultima_pasta(self, caminho):
         try:

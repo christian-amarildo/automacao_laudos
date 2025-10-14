@@ -1,0 +1,21 @@
+{
+    "requisicao": "00001-2025-000000-0",
+    "data": "dd/mm/aaaa",
+    "tipo_procedimento": "INQUÉRITO POR PORTARIA",
+    "inquerito": "00000/2025.000000-0",
+    "unidade_requisitante": "NOME DA DELEGACIA",
+    "lacre": "0000000",
+    "tipo_crime": "",
+    "modelo_dispositivo": "",
+    "cor_aparelho": "",
+    "marca_aparelho": "",
+    "numero_serie": "",
+    "operadora_sim_1": "",
+    "operadora_sim_2": "",
+    "marca_pendrive": "LTOMEX",
+    "capacidade_pendrive": "32 GB",
+    "caminho_relatorio": "\\Relatorio_UFED_AAAA.MM.NNNNNN\\...",
+    "hash_do_hashes": "",
+    "numero_saco_final": "",
+    "numero_lacre_final": ""
+}
