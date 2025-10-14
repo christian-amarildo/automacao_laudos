@@ -49,39 +49,3 @@ def renomear_imagens(marca_celular, novo_caminho):
                 print(f"Imagem renomeada: {old_name} -> {new_name}")  # Mostra o renomeio
             else:
                 print(f"A parte 'celularr' não encontrada em: {file_name}")
-
-# Exemplo de uso
-# if __name__ == "__main__":
-#     # Caminho da pasta onde ficam os laudos
-#     caminho_pasta_original = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra'
-
-#     # Caminho do arquivo de imagem que será processado
-#     caminho_imagem = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos\BOP 000000000.000000-0 Celular crimes contra\Figura 00 - Requisição.jpg'
-    
-#     # Pergunta ao usuário o nome do celular
-#     marca_celular = input("Por favor, insira o nome do celular: ")
-    
-#     try:
-#         # Transcreve o texto da imagem
-#         texto_transcrito = transcrever_imagem(caminho_imagem)  # Chama a função para transcrever o texto
-        
-#         # Chama a função de processamento para obter o inquérito
-#         informacoes_requisicao = processar_texto(texto_transcrito)  # Chama a função para processar o texto
-
-#         # Obtém o inquérito do dicionário
-#         inquerito_numero = informacoes_requisicao['inquerito']  # Acesse o inquérito do dicionário
-
-#         # Caminho de destino para a nova pasta clonada
-#         caminho_pasta_destino = r'C:\Users\Harpia\Documents\vscode\projetos\automacao laudos'  # Defina um caminho de destino
-
-#         # Chama a função para clonar e renomear a pasta
-#         novo_caminho = clonar_e_renomear_pasta(caminho_pasta_original, caminho_pasta_destino, marca_celular, inquerito_numero)  # Passa todos os argumentos
-
-#         # Renomeia as imagens na nova pasta
-#         renomear_imagens(marca_celular, novo_caminho)
-
-#     except FileNotFoundError as e:
-#         print(f"Erro: O arquivo de imagem não foi encontrado. Verifique o caminho especificado: {e}")
-
-#     except Exception as e:
-#         print(f"Ocorreu um erro ao processar a imagem ou o texto: {e}")

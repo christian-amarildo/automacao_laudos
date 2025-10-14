@@ -9,50 +9,57 @@ import shutil
 class AutomacaoLaudosGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Automação de Laudos")
-        self.root.geometry("700x500")
+        self.root.title("Automação de Laudos v3")
+        self.root.geometry("700x600")
 
         # Variáveis para armazenar os caminhos e informações
-        self.caminho_imagem = "C:\\Users\\Harpia\\Documents\\vscode\\projetos\\automacao laudos\\BOP 000000000.000000-0 Celular crimes contra\\Figura 00 - Requisição.jpg"
+        self.caminho_imagem = ".\\BOP 000000000.000000-0 Celular crimes contra\\Figura 00 - Requisição.jpg"
         self.caminho_pasta = ""
         self.caminho_pasta_destino = ""  # Variável para armazenar o caminho da pasta de destino
         self.informacoes_requisicao = {}
         self.marca_celular = ""
+        
+        # --- Novos widgets para campos editáveis ---
+        self.info_frame = None
+        self.info_entries = {}
+        # -----------------------------------------
 
         # Carregar última pasta utilizada (se existir)
         self.carregar_ultima_pasta()
 
-        # Botão para mudar imagem
-        self.btn_mudar_imagem = tk.Button(root, text="Mudar Imagem", command=self.mudar_imagem)
-        self.btn_mudar_imagem.pack(pady=10)
+        # Frame principal para botões
+        top_frame = tk.Frame(root)
+        top_frame.pack(pady=10)
 
-        # Label para mostrar caminho da imagem
-        self.caminho_imagem_label = tk.Label(root, text=self.caminho_imagem)
-        self.caminho_imagem_label.pack()
+        # Botão para mudar imagem
+        self.btn_mudar_imagem = tk.Button(top_frame, text="Mudar Imagem da Requisição", command=self.mudar_imagem)
+        self.btn_mudar_imagem.pack(side=tk.LEFT, padx=5)
 
         # Botão para processar imagem
-        self.btn_processar_imagem = tk.Button(root, text="Processar Imagem", command=self.processar_arquivo)
-        self.btn_processar_imagem.pack(pady=10)
+        self.btn_processar_imagem = tk.Button(top_frame, text="Processar Imagem", command=self.processar_arquivo)
+        self.btn_processar_imagem.pack(side=tk.LEFT, padx=5)
 
-        # Texto de saída para informações extraídas
-        self.output_text = tk.Text(root, height=10)
-        self.output_text.pack(pady=10)
+        # Label para mostrar caminho da imagem
+        self.caminho_imagem_label = tk.Label(root, text=self.caminho_imagem, wraplength=680)
+        self.caminho_imagem_label.pack()
+
+        # --- O antigo output_text foi removido ---
+
+        # Frame inferior para os botões de ação
+        bottom_frame = tk.Frame(root)
+        bottom_frame.pack(pady=20, side=tk.BOTTOM)
 
         # Botão para pedir a marca do celular
-        self.btn_pedir_marca = tk.Button(root, text="Insira a Marca do Celular", command=self.pedir_marca_celular)
-        self.btn_pedir_marca.pack(pady=10)
+        self.btn_pedir_marca = tk.Button(bottom_frame, text="Insira a Marca do Celular", command=self.pedir_marca_celular)
+        self.btn_pedir_marca.pack(side=tk.LEFT, padx=5)
 
         # Botão para selecionar a pasta de origem
-        self.btn_selecionar_pasta = tk.Button(root, text="Selecionar Pasta de Origem", command=self.selecionar_pasta)
-        self.btn_selecionar_pasta.pack(pady=10)
+        self.btn_selecionar_pasta = tk.Button(bottom_frame, text="Selecionar Pasta de Origem", command=self.selecionar_pasta)
+        self.btn_selecionar_pasta.pack(side=tk.LEFT, padx=5)
 
         # Botão para clonar pasta
-        self.btn_clonar_pasta = tk.Button(root, text="Clonar Pasta", command=self.clonar_pasta)
-        self.btn_clonar_pasta.pack(pady=10)
-
-        # # Solicitar a marca do celular ao iniciar
-        # self.pedir_marca_celular()
-
+        self.btn_clonar_pasta = tk.Button(bottom_frame, text="Clonar Pasta", command=self.clonar_pasta)
+        self.btn_clonar_pasta.pack(side=tk.LEFT, padx=5)
 
     def mudar_imagem(self):
         try:
@@ -78,13 +85,56 @@ class AutomacaoLaudosGUI:
             # Processar o texto e extrair as informações da requisição
             self.informacoes_requisicao = processar_texto(texto_transcrito)
 
-            # Exibir as informações extraídas
-            self.output_text.delete(1.0, tk.END)
-            for chave, valor in self.informacoes_requisicao.items():
-                self.output_text.insert(tk.END, f"{chave}: {valor}\n")
+            # Exibir as informações em campos editáveis
+            self.display_editable_info()
 
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao processar a imagem: {e}")
+
+    def display_editable_info(self):
+        # Destruir o frame antigo se ele existir
+        if self.info_frame:
+            self.info_frame.destroy()
+
+        self.info_frame = tk.Frame(self.root, bd=2, relief=tk.GROOVE)
+        self.info_frame.pack(pady=10, padx=10, fill=tk.X)
+
+        self.info_entries = {}
+        
+        # Adiciona um título
+        title_label = tk.Label(self.info_frame, text="Informações Extraídas (edite se necessário)", font=("Helvetica", 10, "bold"))
+        title_label.grid(row=0, column=0, columnspan=2, pady=5)
+
+        # Cria um label e um entry para cada item
+        row_num = 1
+        for chave, valor in self.informacoes_requisicao.items():
+            label = tk.Label(self.info_frame, text=f"{chave}:", anchor="w")
+            label.grid(row=row_num, column=0, sticky="w", padx=5, pady=2)
+            
+            entry = tk.Entry(self.info_frame, width=60)
+            entry.grid(row=row_num, column=1, sticky="ew", padx=5, pady=2)
+            entry.insert(0, valor if valor else "")
+            
+            self.info_entries[chave] = entry
+            row_num += 1
+        
+        # Botão para salvar as correções
+        save_button = tk.Button(self.info_frame, text="Salvar Correções", command=self.save_corrections)
+        save_button.grid(row=row_num, column=0, columnspan=2, pady=10)
+
+    def save_corrections(self):
+        if not self.info_entries:
+            messagebox.showwarning("Aviso", "Nenhuma informação para salvar. Processe uma imagem primeiro.")
+            return
+
+        try:
+            # Atualiza o dicionário com os valores dos campos de entrada
+            for chave, entry_widget in self.info_entries.items():
+                self.informacoes_requisicao[chave] = entry_widget.get()
+            
+            messagebox.showinfo("Sucesso", "Informações corrigidas foram salvas com sucesso!\nAgora você pode prosseguir para clonar a pasta.")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao salvar as informações: {e}")
 
     def selecionar_pasta(self):
         try:
@@ -116,12 +166,13 @@ class AutomacaoLaudosGUI:
 
         try:
             inquerito = self.informacoes_requisicao['inquerito']
+            tipo_crime = self.informacoes_requisicao.get('tipo_crime', '').strip()
             
             # Ajuste o nome do inquérito para evitar caracteres inválidos
             inquerito_numero = re.sub(r'[<>:"/\\|?*]', '.', inquerito)
 
             # Formatar o novo nome da pasta
-            novo_nome = f"BOP {inquerito_numero} Celular {self.marca_celular} crimes contra"
+            novo_nome = f"BOP {inquerito_numero} Celular {self.marca_celular} crimes contra {tipo_crime}"
             novo_caminho = os.path.join(caminho_pasta_destino, novo_nome)
 
             # Verificar se a pasta original existe
@@ -169,7 +220,3 @@ class AutomacaoLaudosGUI:
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao carregar a última pasta: {e}")
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AutomacaoLaudosGUI(root)
-    root.mainloop()

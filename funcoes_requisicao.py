@@ -45,6 +45,9 @@ def processar_texto(texto):
     # Padrão para capturar o número do caso
     numero_caso_pattern = r"Numero do Caso:\s*(\d{4}\s*\d{6})"
 
+    # Padrão para capturar o tipo de crime
+    crime_pattern = r"crimes contra\s*(.*?)(?:\n|$)"
+
 
     # Usando expressões regulares para buscar as informações no texto
     requisicao = re.search(requisicao_pattern, texto, re.IGNORECASE)
@@ -54,6 +57,7 @@ def processar_texto(texto):
     # Usando expressões regulares para buscar o local de ocorrência
     local_ocorrencia = re.search(local_ocorrencia_pattern, texto, re.IGNORECASE)
     lacre = re.search(lacre_pattern, texto, re.IGNORECASE)
+    tipo_crime = re.search(crime_pattern, texto, re.IGNORECASE)
 
     # Armazenando as informações encontradas em variáveis
     requisicao_numero = requisicao.group(1) if requisicao else "Não encontrado"
@@ -62,6 +66,7 @@ def processar_texto(texto):
     autoridade_nome = autoridade.group(1).strip() if autoridade else "Não encontrado"
     local_ocorrencia_nome = local_ocorrencia.group(1).strip() if local_ocorrencia else "Não encontrado"
     lacre_numero = lacre.group(1) if lacre else "Não encontrado"
+    crime_tipo = tipo_crime.group(1).strip() if tipo_crime else "Não encontrado"
 
     # Retorna as informações extraídas em um dicionário
     return {
@@ -70,7 +75,8 @@ def processar_texto(texto):
         "data": data_requisicao,
         "autoridade": autoridade_nome,
         "local_ocorrencia": local_ocorrencia_nome,
-        "lacre": lacre_numero
+        "lacre": lacre_numero,
+        "tipo_crime": crime_tipo
     }
 
 # Função para salvar a transcrição em um arquivo de texto
