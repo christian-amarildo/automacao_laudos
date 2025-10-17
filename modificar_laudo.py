@@ -23,12 +23,9 @@ def gerar_laudo_markdown(informacoes: dict, caminho_arquivo_saida: Path, caminho
         # Salva o novo arquivo de laudo no caminho especificado
         caminho_arquivo_saida.write_text(laudo_content, encoding='utf-8')
         
-        print(f"Laudo em Markdown gerado com sucesso em: {caminho_arquivo_saida}")
         return caminho_arquivo_saida
 
     except FileNotFoundError:
-        print(f"ERRO: Arquivo de template não encontrado em {caminho_template}")
-        return None
+        raise FileNotFoundError(f"Arquivo de template não encontrado em {caminho_template}")
     except Exception as e:
-        print(f"ERRO ao gerar o laudo em Markdown: {e}")
-        return None
+        raise Exception(f"Erro ao gerar o laudo em Markdown: {e}")

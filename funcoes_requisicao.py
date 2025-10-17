@@ -1,11 +1,26 @@
 import re  # Biblioteca para trabalhar com expressões regulares, usada para buscar padrões de texto
 import pytesseract  # Interface Python para Tesseract, que permite realizar OCR (Reconhecimento Óptico de Caracteres)
 from PIL import Image  # Biblioteca PIL (Pillow) usada para abrir e manipular imagens
+import configparser # Importa a biblioteca para ler arquivos de configuração
 
 # Função responsável por realizar o OCR em uma imagem e transcrever seu conteúdo para texto
 def transcrever_imagem(caminho_imagem):
-    # Configura o caminho do Tesseract no Windows, necessário para usar o Tesseract em um ambiente Windows
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    # Lê o arquivo de configuração para obter o caminho do Tesseract
+    config = configparser.ConfigParser()
+    # Usar o encoding='utf-8' para evitar problemas com caracteres especiais no .ini
+    config.read('config.ini', encoding='utf-8')
+    
+    # Define o caminho do executável do Tesseract a partir do config.ini
+    # Isso evita a necessidade de ter o Tesseract no PATH do sistema
+    try:
+        tesseract_path = config.get('Paths', 'tesseract_cmd_path')
+        if tesseract_path:
+            pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        else:
+            raise ValueError("O caminho para o Tesseract não pode ser vazio em config.ini.")
+    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
+        # Lança um erro mais claro se a configuração não for encontrada ou for inválida
+        raise FileNotFoundError(f"Erro ao ler 'tesseract_cmd_path' do 'config.ini': {e}. Verifique se o arquivo existe e se a configuração está correta.")
 
     # Abre a imagem a partir do caminho especificado
     image = Image.open(caminho_imagem)
@@ -18,69 +33,33 @@ def transcrever_imagem(caminho_imagem):
 
 # Função responsável por processar o texto extraído e identificar as informações específicas da requisição
 def processar_texto(texto):
-    # Definindo padrões com expressões regulares para capturar informações específicas no texto extraído
-    
-    # Padrão para capturar o número da requisição de perícia
+    # Lê as expressões regulares do arquivo de configuração
+    config = configparser.ConfigParser()
+    config.read('config.ini', encoding='utf-8')
 
-    requisicao_pattern = r"(\d{5}-\d{4}-\d{6}-\d{1})"
+    # Verifica se a seção de padrões de regex existe
+    if not config.has_section('RegexPatterns'):
+        raise ValueError("A seção [RegexPatterns] não foi encontrada no arquivo config.ini")
 
-    # Padrão para capturar o número do inquérito por portaria
-    inquerito_pattern = r"INQUERITO POR PORTARIA n°\s*(\d{5}/\d{4}\.\d{6}-\d{1})"
+    patterns = config['RegexPatterns']
+    info = {}
 
-    # Padrão para capturar a data da requisição no formato "dd/mm/aaaa"
-    data_pattern = r"Data[\/\s]*Hora.*?:\s*(\d{2}/\d{2}/\d{4})"
+    # Itera sobre cada item na seção de padrões e busca no texto
+    for key, pattern in patterns.items():
+        # O re.search vai procurar pelo padrão em qualquer parte do texto
+        # re.IGNORECASE torna a busca não sensível a maiúsculas/minúsculas
+        match = re.search(pattern, texto, re.IGNORECASE)
+        
+        # Se um padrão for encontrado (match), o grupo de captura 1 é extraído.
+        # O grupo de captura (definido por parênteses na regex) pega apenas o valor desejado.
+        if match:
+            # .strip() remove espaços em branco do início e do fim do valor encontrado
+            info[key] = match.group(1).strip()
+        else:
+            # Se nada for encontrado, um valor padrão "Não encontrado" é atribuído
+            info[key] = "Não encontrado"
 
-    # Padrão para capturar o nome da autoridade que requisitou
-    autoridade_pattern = r"Autoridade Requisitante:\s*([A-Z\s]+)(?:\n|$)"  # Captura até a quebra de linha ou o final do texto
-
-    # Padrão para capturar o número do protocolo
-    protocolo_pattern = r"Numero do Protocolo:\s*(\d{4}\.\d{2}\s*\d{6})"
-
-    # Padrão para capturar o local de ocorrência
-    local_ocorrencia_pattern = r"local(?:\s*de\s*ocorr(?:ência)?\s*):\s*(.*?)(?:\n|$)"
-
-    # Padrão para capturar o número do lacre
-    lacre_pattern = r"LACRE\s*([A-Z\d]+)"
-
-    # Padrão para capturar o número do protocolo
-    protocolo_pattern = r"Numero do Protocolo:\s*(\d{4,4}\.\d{2}\.\d{6})"
-
-    # Padrão para capturar o tipo de crime
-    crime_pattern = r"crimes contra\s*(.*?)(?:\n|$)"
-
-
-    # Usando expressões regulares para buscar as informações no texto
-    requisicao = re.search(requisicao_pattern, texto, re.IGNORECASE)
-    inquerito = re.search(inquerito_pattern, texto, re.IGNORECASE)
-    data = re.search(data_pattern, texto, re.IGNORECASE)
-    autoridade = re.search(autoridade_pattern, texto, re.IGNORECASE)
-    # Usando expressões regulares para buscar o local de ocorrência
-    local_ocorrencia = re.search(local_ocorrencia_pattern, texto, re.IGNORECASE)
-    lacre = re.search(lacre_pattern, texto, re.IGNORECASE)
-    protocolo = re.search(protocolo_pattern, texto, re.IGNORECASE)
-    tipo_crime = re.search(crime_pattern, texto, re.IGNORECASE)
-
-    # Armazenando as informações encontradas em variáveis
-    requisicao_numero = requisicao.group(1) if requisicao else "Não encontrado"
-    inquerito_numero = inquerito.group(1) if inquerito else "Não encontrado"
-    data_requisicao = data.group(1) if data else "Não encontrado"
-    autoridade_nome = autoridade.group(1).strip() if autoridade else "Não encontrado"
-    local_ocorrencia_nome = local_ocorrencia.group(1).strip() if local_ocorrencia else "Não encontrado"
-    lacre_numero = lacre.group(1) if lacre else "Não encontrado"
-    protocolo_numero = protocolo.group(1) if protocolo else "Não encontrado"
-    crime_tipo = tipo_crime.group(1).strip() if tipo_crime else "Não encontrado"
-
-    # Retorna as informações extraídas em um dicionário
-    return {
-        "requisicao": requisicao_numero,
-        "inquerito": inquerito_numero,
-        "protocolo": protocolo_numero,
-        "data": data_requisicao,
-        "autoridade": autoridade_nome,
-        "local_ocorrencia": local_ocorrencia_nome,
-        "lacre": lacre_numero,
-        "tipo_crime": crime_tipo
-    }
+    return info
 
 # Função para salvar a transcrição em um arquivo de texto
 def salvar_transcricao(texto, caminho_saida):
