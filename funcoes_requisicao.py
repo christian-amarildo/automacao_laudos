@@ -1,32 +1,50 @@
+import os
+os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
 import re  # Biblioteca para trabalhar com expressões regulares, usada para buscar padrões de texto
-import pytesseract  # Interface Python para Tesseract, que permite realizar OCR (Reconhecimento Óptico de Caracteres)
-from PIL import Image  # Biblioteca PIL (Pillow) usada para abrir e manipular imagens
+from docling.document_converter import DocumentConverter, FormatOption
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TesseractCliOcrOptions
+from docling.datamodel.base_models import InputFormat
+from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
+from docling.backend.docling_parse_v4_backend import DoclingParseV4DocumentBackend
 import configparser # Importa a biblioteca para ler arquivos de configuração
 
 # Função responsável por realizar o OCR em uma imagem e transcrever seu conteúdo para texto
 def transcrever_imagem(caminho_imagem):
     # Lê o arquivo de configuração para obter o caminho do Tesseract
     config = configparser.ConfigParser()
-    # Usar o encoding='utf-8' para evitar problemas com caracteres especiais no .ini
     config.read('config.ini', encoding='utf-8')
+    tesseract_path = config.get('Paths', 'tesseract_cmd_path')
+
+    # 1. Create pipeline options
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.do_ocr = True
+    ocr_options = TesseractCliOcrOptions()
+    if tesseract_path:
+        ocr_options.tesseract_cmd = tesseract_path
+    ocr_options.force_full_page_ocr = True
+    pipeline_options.ocr_options = ocr_options
+
+
+    # 2. Create a FormatOption
+    format_option = FormatOption(
+        pipeline_cls=StandardPdfPipeline,
+        backend=DoclingParseV4DocumentBackend,
+        pipeline_options=pipeline_options,
+    )
+
+    # 3. Create DocumentConverter with custom format_options
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.IMAGE: format_option
+        }
+    )
+
+    # 4. Convert the document
+    result = converter.convert(caminho_imagem)
+    doc = result.document
     
-    # Define o caminho do executável do Tesseract a partir do config.ini
-    # Isso evita a necessidade de ter o Tesseract no PATH do sistema
-    try:
-        tesseract_path = config.get('Paths', 'tesseract_cmd_path')
-        if tesseract_path:
-            pytesseract.pytesseract.tesseract_cmd = tesseract_path
-        else:
-            raise ValueError("O caminho para o Tesseract não pode ser vazio em config.ini.")
-    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
-        # Lança um erro mais claro se a configuração não for encontrada ou for inválida
-        raise FileNotFoundError(f"Erro ao ler 'tesseract_cmd_path' do 'config.ini': {e}. Verifique se o arquivo existe e se a configuração está correta.")
-
-    # Abre a imagem a partir do caminho especificado
-    image = Image.open(caminho_imagem)
-
-    # Usa o pytesseract para realizar OCR na imagem e retornar o texto extraído
-    texto = pytesseract.image_to_string(image)
+    # Export the parsed document to text
+    texto = doc.export_to_text()
 
     # Retorna o texto que foi extraído da imagem
     return texto
@@ -77,6 +95,9 @@ if __name__ == "__main__":
     try:
         # Chama a função para transcrever o texto a partir da imagem da requisição
         texto_transcrito = transcrever_imagem(caminho_imagem)
+        print("--- Texto Transcrito ---")
+        print(texto_transcrito)
+        print("------------------------")
 
         # Salva a transcrição em um arquivo .txt, sobrescrevendo se já existir
         salvar_transcricao(texto_transcrito, caminho_saida_transcricao)

@@ -4,6 +4,7 @@ from pathlib import Path
 from funcoes_requisicao import transcrever_imagem, processar_texto
 from clonar_pasta_modelo import executar_clonagem_completa
 from modificar_laudo import gerar_laudo_markdown
+from processar_pasta import processar_pasta # Importa a nova função
 import os
 import re
 import shutil
@@ -149,6 +150,10 @@ class AutomacaoLaudosGUI:
         # Botão para Gerar o Laudo
         self.btn_gerar_laudo = tk.Button(action_button_frame, text="Gerar Laudo", command=self.abrir_janela_laudo, state=tk.DISABLED)
         self.btn_gerar_laudo.pack(side=tk.LEFT, padx=10)
+
+        # Botão para Processar Textos da Pasta
+        self.btn_processar_textos = tk.Button(action_button_frame, text="Processar Textos da Pasta", command=self.processar_textos_pasta, state=tk.DISABLED)
+        self.btn_processar_textos.pack(side=tk.LEFT, padx=10)
 
         # Botão para Abrir o Terminal Gemini
         self.btn_abrir_terminal = tk.Button(action_button_frame, text="Abrir Terminal Gemini", command=self.abrir_terminal_gemini, state=tk.DISABLED)
@@ -388,12 +393,12 @@ class AutomacaoLaudosGUI:
                 modelo_dispositivo=modelo_dispositivo
 
             )
-
             # Guarda o caminho do caso atual e ativa os botões de ação
 
             self.caminho_caso_atual = caminho_final
 
             self.btn_gerar_laudo.config(state=tk.NORMAL)
+            self.btn_processar_textos.config(state=tk.NORMAL) # Habilita o novo botão
             self.btn_abrir_terminal.config(state=tk.NORMAL)
 
 
@@ -408,6 +413,25 @@ class AutomacaoLaudosGUI:
 
             messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante o processo:\n\n{e}")
 
+    def processar_textos_pasta(self):
+        """Chama a função para processar todos os textos da pasta do caso atual."""
+        if not self.caminho_caso_atual:
+            messagebox.showwarning("Aviso", "Nenhuma pasta de caso ativa. Clone uma pasta primeiro.")
+            return
+        
+        try:
+            output_filename = "textos_extraidos.txt"
+            output_path = os.path.join(self.caminho_caso_atual, output_filename)
+            
+            # Mostra uma mensagem de que o processo iniciou
+            messagebox.showinfo("Processando", f"Iniciando a extração de texto da pasta...\n\nIsso pode levar alguns minutos.\n\nO arquivo será salvo em:\n{output_path}")
+
+            processar_pasta(self.caminho_caso_atual, output_path)
+            
+            messagebox.showinfo("Sucesso", f"Extração de texto concluída!\n\nArquivo salvo em:\n{output_path}")
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Ocorreu um erro ao processar os textos da pasta: {e}")
 
 
     def abrir_terminal_gemini(self):
@@ -607,6 +631,9 @@ class AutomacaoLaudosGUI:
         except Exception as e:
 
             messagebox.showerror("Erro", f"Erro ao carregar a última pasta: {e}")
+
+
+
 
 
 
