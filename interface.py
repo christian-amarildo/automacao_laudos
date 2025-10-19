@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import json
+import subprocess
 
 class AutomacaoLaudosGUI:
 
@@ -53,17 +54,26 @@ class AutomacaoLaudosGUI:
 
 
 
-        # --- Frame principal ---
+        # --- Estrutura principal com Canvas e Scrollbar ---
+        canvas = tk.Canvas(root)
+        scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
 
-        main_frame = tk.Frame(root)
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
 
-        main_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
 
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
 
         # --- 1. Frame de Seleção e Processamento da Imagem ---
 
-        image_frame = tk.LabelFrame(main_frame, text="Passo 1: Processar Requisição")
+        image_frame = tk.LabelFrame(scrollable_frame, text="Passo 1: Processar Requisição")
 
         image_frame.pack(pady=10, padx=10, fill=tk.X)
 
@@ -95,7 +105,7 @@ class AutomacaoLaudosGUI:
 
         # --- 2. Frame de Resultados do OCR e Edição ---
 
-        self.ocr_results_frame = tk.LabelFrame(main_frame, text="Passo 2: Verificar e Corrigir Informações")
+        self.ocr_results_frame = tk.LabelFrame(scrollable_frame, text="Passo 2: Verificar e Corrigir Informações")
 
         self.ocr_results_frame.pack(pady=10, padx=10, fill=tk.X)
 
@@ -105,7 +115,7 @@ class AutomacaoLaudosGUI:
 
         # --- 3. Frame de Clonagem de Pasta ---
 
-        clone_frame = tk.LabelFrame(main_frame, text="Passo 3: Criar Pasta do Laudo")
+        clone_frame = tk.LabelFrame(scrollable_frame, text="Passo 3: Criar Pasta do Laudo")
 
         clone_frame.pack(pady=10, padx=10, fill=tk.X)
 
@@ -127,19 +137,22 @@ class AutomacaoLaudosGUI:
 
 
 
-        # --- 4. Frame de Geração do Laudo ---
+        # --- 4. Frame de Ações Finais ---
 
-        laudo_frame = tk.LabelFrame(main_frame, text="Passo 4: Gerar Laudo")
-
+        laudo_frame = tk.LabelFrame(scrollable_frame, text="Passo 4: Ações Finais")
         laudo_frame.pack(pady=10, padx=10, fill=tk.X)
 
-
+        # Frame para os botões de ação
+        action_button_frame = tk.Frame(laudo_frame)
+        action_button_frame.pack(pady=5)
 
         # Botão para Gerar o Laudo
+        self.btn_gerar_laudo = tk.Button(action_button_frame, text="Gerar Laudo", command=self.abrir_janela_laudo, state=tk.DISABLED)
+        self.btn_gerar_laudo.pack(side=tk.LEFT, padx=10)
 
-        self.btn_gerar_laudo = tk.Button(laudo_frame, text="Gerar Laudo", command=self.abrir_janela_laudo, state=tk.DISABLED)
-
-        self.btn_gerar_laudo.pack(pady=10)
+        # Botão para Abrir o Terminal Gemini
+        self.btn_abrir_terminal = tk.Button(action_button_frame, text="Abrir Terminal Gemini", command=self.abrir_terminal_gemini, state=tk.DISABLED)
+        self.btn_abrir_terminal.pack(side=tk.LEFT, padx=10)
 
 
 
@@ -376,11 +389,12 @@ class AutomacaoLaudosGUI:
 
             )
 
-            # Guarda o caminho do caso atual e ativa o botão de gerar laudo
+            # Guarda o caminho do caso atual e ativa os botões de ação
 
             self.caminho_caso_atual = caminho_final
 
             self.btn_gerar_laudo.config(state=tk.NORMAL)
+            self.btn_abrir_terminal.config(state=tk.NORMAL)
 
 
 
@@ -393,6 +407,28 @@ class AutomacaoLaudosGUI:
         except Exception as e:
 
             messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante o processo:\n\n{e}")
+
+
+
+    def abrir_terminal_gemini(self):
+        """Abre o terminal Gemini na pasta do caso atual."""
+        if not self.caminho_caso_atual:
+            messagebox.showwarning("Aviso", "Nenhuma pasta de caso ativa. Clone uma pasta primeiro.")
+            return
+        
+        try:
+            # Constrói o caminho para o script que abre o terminal
+            # __file__ se refere a este script (interface.py)
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'abrir_terminal_gemini.py')
+            
+            if not os.path.exists(script_path):
+                messagebox.showerror("Erro", f"O script 'abrir_terminal_gemini.py' não foi encontrado no diretório do programa.")
+                return
+
+            # Usa Popen para não bloquear a GUI. Passa o caminho do caso como argumento.
+            subprocess.Popen(['python', script_path, self.caminho_caso_atual])
+        except Exception as e:
+            messagebox.showerror("Erro", f"Falha ao abrir o terminal Gemini: {e}")
 
 
 
